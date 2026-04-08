@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Game - 游戏界面</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        .game-container {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 40px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        h1 { margin-bottom: 20px; font-size: 2.5em; }
+        .welcome-text { font-size: 1.2em; margin-bottom: 30px; opacity: 0.9; }
+        .game-placeholder {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 60px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            border: 2px dashed rgba(255, 255, 255, 0.5);
+        }
+        .game-placeholder p { font-size: 1.5em; }
+        .logout-btn {
+            padding: 12px 40px;
+            background: white;
+            color: #667eea;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-weight: bold;
+        }
+        .logout-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+        }
+        .logout-btn:active { transform: translateY(0); }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>🎮 Web Game</h1>
+        <p class="welcome-text">欢迎，<span id="username">玩家</span>！</p>
+        
+        <div class="game-placeholder">
+            <p>🚀 游戏机制开发中...</p>
+            <p style="font-size: 0.8em; margin-top: 20px; opacity: 0.8;">敬请期待后续更新</p>
+        </div>
+
+        <button class="logout-btn" onclick="logout()">退出登录</button>
+    </div>
+
+    <script>
+        // 页面加载时检查登录状态
+        async function checkAuth() {
+            try {
+                const response = await fetch('/api/me');
+                const data = await response.json();
+                
+                if (!data.logged_in) {
+                    window.location.href = '/';
+                    return;
+                }
+                
+                document.getElementById('username').textContent = data.username;
+            } catch (error) {
+                console.error('认证检查失败:', error);
+                window.location.href = '/';
+            }
+        }
+
+        // 退出登录
+        async function logout() {
+            try {
+                await fetch('/api/logout', { method: 'POST' });
+                window.location.href = '/';
+            } catch (error) {
+                console.error('登出失败:', error);
+                window.location.href = '/';
+            }
+        }
+
+        // 初始化
+        checkAuth();
+    </script>
+</body>
+</html>
