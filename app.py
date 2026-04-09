@@ -1,6 +1,7 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 import sqlite3
 import os
+from keyscan import scanner
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key_here'  # 用于会话管理和闪存消息，生产环境请更换为复杂随机字符串
@@ -99,6 +100,96 @@ def logout():
     session.clear()
     flash('已安全退出。', 'info')
     return redirect(url_for('login'))
+
+# --- 单片机按键控制接口 ---
+
+@app.route('/api/input/<char>', methods=['POST'])
+def receive_input(char):
+    """接收单片机输入的字符（用户名或密码）"""
+    if char == 'backspace':
+        # 删除最后一个字符（简单处理：从缓冲区末尾删除）
+        current = scanner.get_input()
+        if current:
+            # 这里简化处理，实际可能需要区分用户名和密码字段
+            pass  # keyscan 模块中可添加更复杂的逻辑
+    else:
+        # 普通字符输入
+        scanner.add_char(char)
+    return jsonify({'status': 'ok', 'input': scanner.get_input()})
+
+@app.route('/api/k1_login', methods=['POST'])
+def k1_login():
+    """K1 按键：执行登录操作"""
+    input_data = scanner.press_k1_login()
+    
+    # 简单解析：假设输入格式为 "username:password"
+    if ':' not in input_data:
+        scanner.clear_buffer()
+        return jsonify({'status': 'error', 'message': '输入格式错误，请使用 username:password 格式'})
+    
+    parts = input_data.split(':', 1)
+    username = parts[0].strip()
+    password = parts[1].strip()
+    
+    if not username or not password:
+        scanner.clear_buffer()
+        return jsonify({'status': 'error', 'message': '请输入用户名和密码'})
+    
+    db = get_db_connection()
+    user = db.execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
+    db.close()
+    
+    if user is None:
+        scanner.clear_buffer()
+        return jsonify({'status': 'error', 'message': '用户不存在'})
+    elif user['password'] != password:
+        scanner.clear_buffer()
+        return jsonify({'status': 'error', 'message': '密码错误'})
+    else:
+        session['username'] = user['username']
+        scanner.clear_buffer()
+        return jsonify({'status': 'success', 'message': '登录成功', 'redirect': '/game'})
+
+@app.route('/api/k2_register', methods=['POST'])
+def k2_register():
+    """K2 按键：执行注册操作"""
+    input_data = scanner.press_k2_register()
+    
+    # 简单解析：假设输入格式为 "username:password"
+    if ':' not in input_data:
+        scanner.clear_buffer()
+        return jsonify({'status': 'error', 'message': '输入格式错误，请使用 username:password 格式'})
+    
+    parts = input_data.split(':', 1)
+    username = parts[0].strip()
+    password = parts[1].strip()
+    
+    if not username or not password:
+        scanner.clear_buffer()
+        return jsonify({'status': 'error', 'message': '请输入用户名和密码'})
+    
+    db = get_db_connection()
+    try:
+        db.execute('INSERT INTO users (username, password) VALUES (?, ?)', (username, password))
+        db.commit()
+        db.close()
+        scanner.clear_buffer()
+        return jsonify({'status': 'success', 'message': '注册成功'})
+    except sqlite3.IntegrityError:
+        db.close()
+        scanner.clear_buffer()
+        return jsonify({'status': 'error', 'message': '用户名已存在'})
+
+@app.route('/api/clear_input', methods=['POST'])
+def clear_input():
+    """清空临时输入缓冲区"""
+    scanner.clear_buffer()
+    return jsonify({'status': 'ok'})
+
+@app.route('/api/get_input', methods=['GET'])
+def get_input_status():
+    """获取当前输入状态（用于调试）"""
+    return jsonify({'input': scanner.get_input(), 'last_action': scanner.get_last_action()})
 
 if __name__ == '__main__':
     # 启动前初始化数据库
