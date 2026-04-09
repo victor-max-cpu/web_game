@@ -42,8 +42,7 @@
     <div class="mcu-status">
         <strong>单片机控制说明：</strong><br>
         K1 = 登录 | K2 = 注册<br>
-        其他按键输入字符，Backspace 删除<br>
-        状态：<span id="mcu-display">等待输入...</span>
+        用户名和密码通过键盘输入，按下 K1 执行登录，按下 K2 执行注册
     </div>
 </div>
 
@@ -81,82 +80,75 @@
     }
     
     // --- 单片机按键 API 调用 ---
-    async function sendKey(key) {
-        try {
-            const response = await fetch('/api/input/' + encodeURIComponent(key), { method: 'POST' });
-            const data = await response.json();
-            updateDisplay(data.username, data.password);
-        } catch (e) {
-            console.error('发送按键失败:', e);
-        }
-    }
-    
+    // K1 登录：从表单获取用户名和密码并提交
     async function sendK1() {
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        
+        if (!username || !password) {
+            alert('请先输入用户名和密码');
+            return;
+        }
+        
         try {
-            const response = await fetch('/api/k1_login', { method: 'POST' });
+            const formData = new FormData();
+            formData.append('username', username);
+            formData.append('password', password);
+            
+            const response = await fetch('/api/k1_login', { 
+                method: 'POST',
+                body: formData
+            });
             const data = await response.json();
             if (data.status === 'success') {
-                document.getElementById('mcu-display').innerHTML = '<span style="color:green;">' + data.message + '</span>';
-                setTimeout(() => { window.location.href = data.redirect; }, 1000);
+                alert(data.message);
+                window.location.href = data.redirect;
             } else {
-                document.getElementById('mcu-display').innerHTML = '<span style="color:red;">' + data.message + '</span>';
-                setTimeout(() => { document.getElementById('mcu-display').innerText = '等待输入...'; }, 2000);
+                alert(data.message);
             }
         } catch (e) {
             console.error('K1 登录失败:', e);
+            alert('登录请求失败');
         }
     }
     
+    // K2 注册：从表单获取用户名和密码并提交
     async function sendK2() {
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        
+        if (!username || !password) {
+            alert('请先输入用户名和密码');
+            return;
+        }
+        
         try {
-            const response = await fetch('/api/k2_register', { method: 'POST' });
+            const formData = new FormData();
+            formData.append('username', username);
+            formData.append('password', password);
+            
+            const response = await fetch('/api/k2_register', { 
+                method: 'POST',
+                body: formData
+            });
             const data = await response.json();
             if (data.status === 'success') {
-                document.getElementById('mcu-display').innerHTML = '<span style="color:green;">' + data.message + '</span>';
-                setTimeout(() => { 
-                    document.getElementById('mcu-display').innerText = '等待输入...';
-                    document.getElementById('username').value = '';
-                    document.getElementById('password').value = '';
-                }, 2000);
+                alert(data.message);
+                document.getElementById('username').value = '';
+                document.getElementById('password').value = '';
             } else {
-                document.getElementById('mcu-display').innerHTML = '<span style="color:red;">' + data.message + '</span>';
-                setTimeout(() => { document.getElementById('mcu-display').innerText = '等待输入...'; }, 2000);
+                alert(data.message);
             }
         } catch (e) {
             console.error('K2 注册失败:', e);
+            alert('注册请求失败');
         }
     }
-    
-    function updateDisplay(username, password) {
-        document.getElementById('username').value = username;
-        document.getElementById('password').value = password;
-        document.getElementById('mcu-display').innerText = '用户:' + (username || '空') + ' | 密码长度:' + password.length;
-    }
-    
-    async function loadInputStatus() {
-        try {
-            const response = await fetch('/api/get_input');
-            const data = await response.json();
-            if (data.username || data.password_length > 0) {
-                updateDisplay(data.username, '*'.repeat(data.password_length));
-            }
-        } catch (e) {
-            console.error('加载状态失败:', e);
-        }
-    }
-    
-    loadInputStatus();
     
     // --- 键盘监听（方便电脑测试，F1=K1, F2=K2）---
     document.addEventListener('keydown', async (e) => {
         if (e.key === 'F1') { e.preventDefault(); sendK1(); return; }
         if (e.key === 'F2') { e.preventDefault(); sendK2(); return; }
-        if (e.key === 'Backspace') { e.preventDefault(); sendKey('backspace'); return; }
-        if (e.key === 'Tab') { e.preventDefault(); sendKey('tab'); return; }
-        if (e.key.length === 1 && /[a-zA-Z0-9]/.test(e.key)) {
-            e.preventDefault();
-            sendKey(e.key);
-        }
     });
 </script>
 
