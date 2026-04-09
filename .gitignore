@@ -1,2 +1,4 @@
-.web_coding/
-.vscode/
+```
+__pycache__/
+*.pyc
+```

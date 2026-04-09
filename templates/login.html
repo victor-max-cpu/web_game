@@ -19,6 +19,10 @@
         .btn-register { background-color: #28a745; flex: 1; }
         .btn-retry { background-color: #007bff; flex: 1; }
         .close-btn { margin-top: 10px; background: none; border: none; color: #666; cursor: pointer; text-decoration: underline; }
+        
+        /* 单片机控制提示 */
+        .mcu-status { margin-top: 15px; padding: 10px; background: #e7f3ff; border-radius: 4px; font-size: 12px; color: #333; }
+        .mcu-status strong { color: #007bff; }
     </style>
 </head>
 <body>
@@ -26,14 +30,21 @@
 <div class="login-container">
     <h2>游戏登录</h2>
     <form method="POST" action="/login">
-        <input type="text" name="username" placeholder="用户名 (必须唯一)" required>
-        <input type="password" name="password" placeholder="密码" required>
+        <input type="text" name="username" id="username" placeholder="用户名 (必须唯一)" required>
+        <input type="password" name="password" id="password" placeholder="密码" required>
         
         <!-- 登录按钮 -->
         <button type="submit" name="action" value="login">直接登录</button>
         <!-- 注册按钮 -->
         <button type="submit" name="action" value="register" class="secondary">新建玩家信息</button>
     </form>
+    
+    <div class="mcu-status">
+        <strong>单片机控制说明：</strong><br>
+        K1 = 登录 | K2 = 注册<br>
+        其他按键输入字符，Backspace 删除<br>
+        状态：<span id="mcu-display">等待输入...</span>
+    </div>
 </div>
 
 {% if error %}
@@ -55,23 +66,98 @@
     // 关闭弹窗
     function closeModal() {
         document.getElementById('errorModal').style.display = 'none';
-        // 清空密码框，方便重试
         document.querySelector('input[name="password"]').value = '';
         document.querySelector('input[name="username"]').focus();
     }
 
-    // 切换到注册模式：这里通过模拟点击“新建玩家信息”按钮来实现
-    // 或者你可以修改表单的默认行为，这里采用最简单的触发第二个按钮
+    // 切换到注册模式
     function switchToRegister() {
         closeModal();
-        // 找到表单中 value 为 'register' 的按钮并触发点击
         const registerBtn = document.querySelector('button[name="action"][value="register"]');
         if(registerBtn) {
-            // 视觉反馈：可以加个高亮，或者直接聚焦到输入框
             document.querySelector('input[name="username"]').focus();
-            alert("已切换至新建模式，请填写信息后点击“新建玩家信息”按钮。");
+            alert("已切换至新建模式，请填写信息后点击"新建玩家信息"按钮。");
         }
     }
+    
+    // --- 单片机按键 API 调用 ---
+    async function sendKey(key) {
+        try {
+            const response = await fetch('/api/input/' + encodeURIComponent(key), { method: 'POST' });
+            const data = await response.json();
+            updateDisplay(data.username, data.password);
+        } catch (e) {
+            console.error('发送按键失败:', e);
+        }
+    }
+    
+    async function sendK1() {
+        try {
+            const response = await fetch('/api/k1_login', { method: 'POST' });
+            const data = await response.json();
+            if (data.status === 'success') {
+                document.getElementById('mcu-display').innerHTML = '<span style="color:green;">' + data.message + '</span>';
+                setTimeout(() => { window.location.href = data.redirect; }, 1000);
+            } else {
+                document.getElementById('mcu-display').innerHTML = '<span style="color:red;">' + data.message + '</span>';
+                setTimeout(() => { document.getElementById('mcu-display').innerText = '等待输入...'; }, 2000);
+            }
+        } catch (e) {
+            console.error('K1 登录失败:', e);
+        }
+    }
+    
+    async function sendK2() {
+        try {
+            const response = await fetch('/api/k2_register', { method: 'POST' });
+            const data = await response.json();
+            if (data.status === 'success') {
+                document.getElementById('mcu-display').innerHTML = '<span style="color:green;">' + data.message + '</span>';
+                setTimeout(() => { 
+                    document.getElementById('mcu-display').innerText = '等待输入...';
+                    document.getElementById('username').value = '';
+                    document.getElementById('password').value = '';
+                }, 2000);
+            } else {
+                document.getElementById('mcu-display').innerHTML = '<span style="color:red;">' + data.message + '</span>';
+                setTimeout(() => { document.getElementById('mcu-display').innerText = '等待输入...'; }, 2000);
+            }
+        } catch (e) {
+            console.error('K2 注册失败:', e);
+        }
+    }
+    
+    function updateDisplay(username, password) {
+        document.getElementById('username').value = username;
+        document.getElementById('password').value = password;
+        document.getElementById('mcu-display').innerText = '用户:' + (username || '空') + ' | 密码长度:' + password.length;
+    }
+    
+    async function loadInputStatus() {
+        try {
+            const response = await fetch('/api/get_input');
+            const data = await response.json();
+            if (data.username || data.password_length > 0) {
+                updateDisplay(data.username, '*'.repeat(data.password_length));
+            }
+        } catch (e) {
+            console.error('加载状态失败:', e);
+        }
+    }
+    
+    loadInputStatus();
+    
+    // --- 键盘监听（方便电脑测试，F1=K1, F2=K2）---
+    document.addEventListener('keydown', async (e) => {
+        if (e.key === 'F1') { e.preventDefault(); sendK1(); return; }
+        if (e.key === 'F2') { e.preventDefault(); sendK2(); return; }
+        if (e.key === 'Backspace') { e.preventDefault(); sendKey('backspace'); return; }
+        if (e.key === 'Tab') { e.preventDefault(); sendKey('tab'); return; }
+        if (e.key.length === 1 && /[a-zA-Z0-9]/.test(e.key)) {
+            e.preventDefault();
+            sendKey(e.key);
+        }
+    });
 </script>
 
 </body>
