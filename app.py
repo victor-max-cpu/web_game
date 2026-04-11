@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 import sqlite3
 import os
 from keyb_sim import start_keyboard_simulation  # 导入键盘模拟功能
+import uuid
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key_here'  # 用于会话管理和闪存消息，生产环境请更换为复杂随机字符串
@@ -141,6 +142,32 @@ def k2_register():
         db.close()
         return jsonify({'status': 'error', 'message': '用户名已存在'})
     
+@app.route('/api/action', methods=['POST'])
+def handle_action():
+    """
+    处理来自键盘模拟器或硬件的动作请求
+    兼容旧版模拟器的请求入口
+    """
+    try:
+        data = request.get_json() or {}
+        action_type = data.get('type', 'unknown')
+        
+        # 记录日志
+        print(f"[API] 收到动作请求: {action_type}")
+        
+        # 返回成功响应，避免模拟器报错
+        # 注意：这里仅做响应，实际登录/注册逻辑需调用具体接口
+        # 如果模拟器需要自动触发登录，请修改模拟器代码指向 /api/k1_login
+        return jsonify({
+            "status": "success",
+            "message": f"收到动作: {action_type}。提示：请直接调用 /api/k1_login 或 /api/k2_register 进行业务操作",
+            "data": data
+        }), 200
+        
+    except Exception as e:
+        print(f"[API] 处理动作请求出错: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
 #键盘模拟代码
 # 在应用启动前开启键盘模拟线程
 # 注意：如果不需要键盘模拟，可以注释掉下面这行
