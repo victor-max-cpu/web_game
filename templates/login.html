@@ -145,10 +145,10 @@
         }
     }
     
-    // --- 键盘监听（方便电脑测试，F1=K1, F2=K2）---
+    // --- 键盘监听（方便电脑测试，,=K1, .=K2）---
     document.addEventListener('keydown', async (e) => {
-        if (e.key === 'F1') { e.preventDefault(); sendK1(); return; }
-        if (e.key === 'F2') { e.preventDefault(); sendK2(); return; }
+        if (e.key === ',') { e.preventDefault(); sendK1(); return; }
+        if (e.key === '.') { e.preventDefault(); sendK2(); return; }
     });
 </script>
 
