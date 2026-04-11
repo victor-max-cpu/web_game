@@ -75,13 +75,13 @@
         const registerBtn = document.querySelector('button[name="action"][value="register"]');
         if(registerBtn) {
             document.querySelector('input[name="username"]').focus();
-            alert("已切换至新建模式，请填写信息后点击"新建玩家信息"按钮。");
+            alert("已切换至新建模式，请填写信息后点击'新建玩家信息'按钮。");
         }
     }
     
     // --- 单片机按键 API 调用 ---
     // K1 登录：从表单获取用户名和密码并提交
-    async function sendK1() {
+    window.sendK1 = async function () {
         const username = document.getElementById('username').value;
         const password = document.getElementById('password').value;
         
@@ -113,7 +113,7 @@
     }
     
     // K2 注册：从表单获取用户名和密码并提交
-    async function sendK2() {
+    window.sendK2 = async function () {
         const username = document.getElementById('username').value;
         const password = document.getElementById('password').value;
         
@@ -145,10 +145,10 @@
         }
     }
     
-    // --- 键盘监听（方便电脑测试，,=K1, .=K2）---
+    // --- 键盘监听（方便电脑测试，F1=K1, F2=K2）---
     document.addEventListener('keydown', async (e) => {
-        if (e.key === ',') { e.preventDefault(); sendK1(); return; }
-        if (e.key === '.') { e.preventDefault(); sendK2(); return; }
+        if (e.key === 'F1') { e.preventDefault(); sendK1(); return; }
+        if (e.key === 'F2') { e.preventDefault(); sendK2(); return; }
     });
 </script>
 
