@@ -16,7 +16,7 @@ import threading
 # 1. 串口配置 (根据你的电脑实际端口修改)
 # Windows 示例: 'COM3', 'COM4'
 # Linux/Mac 示例: '/dev/ttyACM0', '/dev/ttyUSB0', '/dev/cu.usbmodem...'
-SERIAL_PORT = 'COM3'  
+SERIAL_PORT = 'COM5'  
 BAUD_RATE = 9600
 
 # 2. Flask 服务器地址

@@ -1,1 +1,2 @@
-(key_listener.py is a source file, so no need to add anything to .gitignore)
+.web_coding/
+./_pycache__/

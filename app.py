@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 import sqlite3
 import os
+from keyb_sim import start_keyboard_simulation  # 导入键盘模拟功能
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key_here'  # 用于会话管理和闪存消息，生产环境请更换为复杂随机字符串
@@ -139,6 +140,22 @@ def k2_register():
     except sqlite3.IntegrityError:
         db.close()
         return jsonify({'status': 'error', 'message': '用户名已存在'})
+    
+#键盘模拟代码
+# 在应用启动前开启键盘模拟线程
+# 注意：如果不需要键盘模拟，可以注释掉下面这行
+start_keyboard_simulation()
+
+@app.route('/api/send', methods=['POST'])
+def send_command():
+    data = request.json
+    key = data.get('key')
+    print(f"[Web接口] 收到请求: {key}")
+    # 这里未来可以调用 key_listener.py 中的串口发送逻辑
+    return jsonify({"status": "success", "message": f"{key} command received"})
+
+
+
 
 if __name__ == '__main__':
     # 启动前初始化数据库
